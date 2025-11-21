@@ -1,0 +1,59 @@
++---------------------+          +-------------------------+        +----------------------+
+|       CLI (Typer)   |  input   |   Orchestrator/Runner   |        |   Config & Secrets   |
+|  --db-url --dialect |--------->|  q->SQL->validate->exec |<-------|  ENV/.env/KeyVault   |
+|  --limit --explain  |          +-----------+-------------+        +----------------------+
+|  --json --csv       |                      |                                     
++----------+----------+                      |                                     
+           |                                  |                                  
+           v                                  v                                  
++----------------------+           +---------------------+         +-----------------------+
+|  Prompt Templates    |           |     LLMClient       |         |   SchemaProvider      |
+|  (LangChain 可选)    |           |  OpenAI/Ollama/...  |         |  SQLAlchemy/驱动      |
+|  系统/少样例/约束    |           |  可替换模型端点     |         |  表/列/类型/外键      |
++----------+-----------+           +----------+----------+         +-----------+-----------+
+           |                                  |                                |
+           v                                  |                                v
++----------------------+           +----------v----------+         +-----------------------+
+|    SqlGuard          |           |   Cache & History   |         |   RAG/Schema 文档     |
+|  sqlglot AST 校验    |           |  问题→SQL 命中缓存  |         |  向量检索(可选)       |
+|  只读/单语句/LIMIT   |           +----------+----------+         +-----------+-----------+
++----------+-----------+                      |                                |
+           |                                  |                                |
+           v                                  v                                v
++----------------------+           +---------------------+         +-----------------------+
+|   DbExecutor         |  query    |   Output Formatter  |         |  Observability        |
+|  只读连接/EXPLAIN    |---------> |  表格/JSON/CSV      |         |  日志/审计/指标       |
+|  超时/行数上限       |           +---------------------+         +-----------------------+
++----------+-----------+
+           |
+           v
++----------------------+                          +-------------------------------+
+|  Evaluator (ex 指标) |<------------------------->|  Model Training (DB-GPT-Hub) |
+|  Spider/WikiSQL/自建 |    模型更迭评测           |  SFT/LoRA/QLoRA/数据管线     |
++----------------------+                          +-------------------------------+
+
+                                      (可选)
+                                      +------------------------------+
+                                      |       MCP Adapter            |
+                                      | 工具暴露: describe_schema,   |
+                                      | query_db(只读强约束)        |
+                                      +------------------------------+
+                                      
+模块职责
+- LLMClient：统一 OpenAI 兼容接口，接入云端或本地模型；仅返回单条目标方言 SELECT
+- Prompt Templates：系统提示与少样例，明确方言、只读、必须使用提供的 Schema、默认 LIMIT
+- SchemaProvider：从数据库拉取表/列/类型/主外键、必要时示例值；提供上下文与子集检索
+- SqlGuard： sqlglot AST 校验；拒绝 DDL/DML/多语句/危险函数；自动附加 LIMIT 与 EXPLAIN 预审
+- DbExecutor：只读连接、事务隔离、超时与行数上限；错误兼容与方言异常提示
+- Output Formatter：结果表格化展示，支持 --json / --csv 导出
+- Cache & History：问题→SQL 命中缓存，便于重复查询与回溯
+- RAG（可选）：对表/列说明文档建索引，按问题检索相关描述增强上下文
+- Observability：结构化日志与审计（问题、SQL、校验结果、耗时、行数）；指标打点
+- Evaluator：维护 ex 指标评测集（Spider/WikiSQL/自建），用于模型替换的回归验证
+- Model Training（DB-GPT-Hub）：微调管线与权重管理；通过替换 LLMClient 的端点实现低耦合升级
+- MCP Adapter（可选）：当需要代理式多工具编排时暴露只读工具；默认不依赖 MCP
+
+关键数据流
+- CLI 输入问题与选项 → Orchestrator 拉取 Schema 子集 → Prompt 生成 SQL → SqlGuard 校验与修正 → 可选 EXPLAIN → DbExecutor 执行 → Formatter 输出与审计日志
+- 模型替换：仅调整 LLMClient 配置（ MODEL_ENDPOINT/MODEL_NAME/PROVIDER ），其余模块不动
+- 评测闭环：对固定问题集执行生成与校验，记录 ex 指标与差异，用于微调后回归

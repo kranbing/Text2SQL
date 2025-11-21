@@ -1,0 +1,23 @@
+{"table": "orders", "index": 0, "error": "invalid integer id", "row": {"id": "x", "amount": "12.3", "created_at": "2025-11-01"}}
+{"table": "orders", "index": 1, "error": "type conversion failed amount", "row": {"id": 2, "amount": "abc", "created_at": "2025-11-10"}}
+{"table": "orders", "index": 2, "error": "invalid date created_at", "row": {"id": 3, "amount": 7.5, "created_at": "2025/11/11"}}
+{"table": "orders", "index": 0, "error": "invalid integer id", "row": {"id": "x", "amount": "12.3", "created_at": "2025-11-01"}}
+{"table": "orders", "index": 1, "error": "type conversion failed amount", "row": {"id": 2, "amount": "abc", "created_at": "2025-11-10"}}
+{"table": "orders", "index": 2, "error": "invalid date created_at", "row": {"id": 3, "amount": 7.5, "created_at": "2025/11/11"}}
+{"table": "orders", "index": 0, "error": "invalid integer id", "row": {"id": "x", "amount": "12.3", "created_at": "2025-11-01"}}
+{"table": "orders", "index": 1, "error": "type conversion failed amount", "row": {"id": 2, "amount": "abc", "created_at": "2025-11-10"}}
+{"table": "orders", "index": 2, "error": "invalid date created_at", "row": {"id": 3, "amount": 7.5, "created_at": "2025/11/11"}}
+{"table": "t", "index": 0, "error": "invalid integer id", "row": {"id": "x"}}
+{"table": "orders", "index": 0, "error": "invalid integer id", "row": {"id": "x", "amount": "12.3", "created_at": "2025-11-01"}}
+{"table": "orders", "index": 1, "error": "type conversion failed amount", "row": {"id": 2, "amount": "abc", "created_at": "2025-11-10"}}
+{"table": "orders", "index": 2, "error": "invalid date created_at", "row": {"id": 3, "amount": 7.5, "created_at": "2025/11/11"}}
+{"table": "t", "index": 0, "error": "invalid integer id", "row": {"id": "x"}}
+{"table": "orders", "index": 0, "error": "invalid integer id", "row": {"id": "x", "amount": "12.3", "created_at": "2025-11-01"}}
+{"table": "orders", "index": 1, "error": "type conversion failed amount", "row": {"id": 2, "amount": "abc", "created_at": "2025-11-10"}}
+{"table": "orders", "index": 2, "error": "invalid date created_at", "row": {"id": 3, "amount": 7.5, "created_at": "2025/11/11"}}
+{"table": "orders", "index": 0, "error": "invalid integer id", "row": {"id": "x", "amount": "12.3", "created_at": "2025-11-01"}}
+{"table": "orders", "index": 1, "error": "type conversion failed amount", "row": {"id": 2, "amount": "abc", "created_at": "2025-11-10"}}
+{"table": "orders", "index": 2, "error": "invalid date created_at", "row": {"id": 3, "amount": 7.5, "created_at": "2025/11/11"}}
+{"table": "orders", "index": 0, "error": "invalid integer id", "row": {"id": "x", "amount": "12.3", "created_at": "2025-11-01"}}
+{"table": "orders", "index": 1, "error": "type conversion failed amount", "row": {"id": 2, "amount": "abc", "created_at": "2025-11-10"}}
+{"table": "orders", "index": 2, "error": "invalid date created_at", "row": {"id": 3, "amount": 7.5, "created_at": "2025/11/11"}}
