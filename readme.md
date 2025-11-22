@@ -45,7 +45,7 @@ python cli.py
   - CSV 三列：用户问题、生成的sql、查询结果（结果集为 JSON 字符串）
 
 示例配置 | Example Config
-- `.env.example`（需自行复制为 `.env` 并填充）：
+- 在`.env` 中设置自己的配置如下）：
   - `DB_URL= mysql://user:pass@host:3306/db`
   - `DIALECT= mysql`
   - `SILICONFLOW_API_KEY= sk-xxxx`
