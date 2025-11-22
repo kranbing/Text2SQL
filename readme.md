@@ -25,9 +25,9 @@
 - 计划：恢复后支持 JSON 校验、规范化和错误记录，兼容 MySQL/SQL Server。
 
 开始使用 | CLI Usage
-- '''bash
-- python cli.py
-- '''
+'''bash
+python cli.py
+'''
 
 - 交互命令 | Interactive Commands
   - `-h` 查看帮助
