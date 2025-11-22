@@ -42,9 +42,26 @@ class Orchestrator:
             for t, cols in schema.get("tables", {}).items():
                 print(f"{t}: {', '.join(cols)}")
         docs = schema.get("docs", [])
+        kb_dir = os.getenv("KB_DIR", None)
+        if kb_dir and os.path.isdir(kb_dir):
+            kb_glob = os.getenv("KB_GLOB", "*.txt")
+            kb_docs = []
+            try:
+                import glob
+                for p in glob.glob(os.path.join(kb_dir, kb_glob)):
+                    try:
+                        with open(p, "r", encoding="utf-8") as f:
+                            txt = f.read()
+                        if txt.strip():
+                            kb_docs.append(txt)
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+            docs = docs + kb_docs
         self.rag_index.build(docs)
         self.rag.set_index(self.rag_index)
-        ctx_docs = self.rag.query(question, top_k=5)
+        ctx_docs = self.rag.query(question, top_k=3)
 
         if self.llm is None:
             self.llm = LLMClient()
@@ -66,6 +83,10 @@ class Orchestrator:
         finally:
             stop_evt.set()
             t.join()
+        if str(sql).strip() == "7355608":
+            print("请检查要查询的字段是否在数据库中")
+            return
+        
         sql = self.guard.validate(sql, dialect)
         plan_rows, plan_headers = None, None
 

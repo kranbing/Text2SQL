@@ -91,22 +91,7 @@ def main():
             continue
 
         if q.lower().startswith("-imptjson"):
-            parts = q.split(maxsplit=1)
-            if len(parts) == 2 and parts[1].strip():
-                path = parts[1].strip()
-                try:
-                    if not orchestrator.db_url:
-                        print("未配置 DB_URL（MySQL）。请设置环境变量后再导入")
-                        continue
-                    res = orchestrator.schema.import_json(path, orchestrator.db_url, orchestrator.dialect)
-                    if res.get("errors"):
-                        print(f"导入完成，有错误 {len(res['errors'])} 条，详见 import_errors.jsonl")
-                    else:
-                        print("导入成功")
-                except Exception as e:
-                    print(f"导入失败: {e}")
-            else:
-                print("用法：-imptjson <filepath>")
+            print("导入功能暂时不可用（占位）")
             continue
 
         if q.lower().startswith("-l"):
@@ -147,15 +132,22 @@ def main():
             print(f"SCHEMA={'ON' if show_schema else 'OFF'}")
             continue
 
-        orchestrator.run(
-            question=q,
-            limit=limit,
-            explain=explain,
-            dry_run=dry_run,
-            as_json=as_json,
-            as_csv=as_csv,
-            show_schema=show_schema,
-        )
+        try:
+            orchestrator.run(
+                question=q,
+                limit=limit,
+                explain=explain,
+                dry_run=dry_run,
+                as_json=as_json,
+                as_csv=as_csv,
+                show_schema=show_schema,
+            )
+        except ValueError as e:
+            print(str(e))
+            continue
+        except Exception as e:
+            print(f"查询失败: {e}")
+            continue
 
 if __name__ == "__main__":
     main()

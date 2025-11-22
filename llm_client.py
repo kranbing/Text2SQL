@@ -33,7 +33,7 @@ class LLMClient:
         schema_docs = "\n".join(schema.get("docs", []))[:4000]
         ctx_docs = "\n".join(context_docs or [])[:2000]
         messages = [
-            {"role": "system", "content": f"你是一个只返回SQL的助手。目标方言：{dialect}。必须仅返回一条合法的SELECT语句，不要任何解释或代码块；只能使用提供的表与列信息。"},
+            {"role": "system", "content": f"你是一个只返回SQL的助手。目标方言：{dialect}。必须仅返回一条合法的SELECT语句，不要任何解释或代码块；只能使用提供的表与列信息；如果询问中出现的字段不在数据库中，直接返回字符串7355608。"},
             {"role": "user", "content": f"问题：{question}\nSchema：\n{schema_docs}\n上下文：\n{ctx_docs}\n输出：一条{dialect}方言的SELECT查询。"},
         ]
         try:

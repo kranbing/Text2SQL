@@ -2,7 +2,7 @@
 
 # 前期工作
 
-Text2SQL 项目（CLI）
+实现了一个运行在命令行的简单sql查询程序
 
 简介 | Introduction
 - 通过自然语言生成 SQL 并执行查询，支持交互式 CLI 模式
@@ -24,7 +24,11 @@ Text2SQL 项目（CLI）
 - 当前状态：`-imptjson` 功能暂不可用（占位）。
 - 计划：恢复后支持 JSON 校验、规范化和错误记录，兼容 MySQL/SQL Server。
 
-命令行用法 | CLI Usage
+开始使用 | CLI Usage
+- '''bash
+- python cli.py
+- '''
+
 - 交互命令 | Interactive Commands
   - `-h` 查看帮助
   - `-l N` 设置结果上限
