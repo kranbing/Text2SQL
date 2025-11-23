@@ -1,0 +1,80 @@
+{
+  "db": "elec_db",
+  "host": "127.0.0.1",
+  "port": 3306,
+  "tables": {
+    "bills": [
+      "bill_id",
+      "user_id",
+      "meter_id",
+      "billing_month",
+      "total_consumption",
+      "total_amount",
+      "due_date",
+      "payment_status",
+      "paid_date",
+      "created_at"
+    ],
+    "electricity_prices": [
+      "price_id",
+      "user_type",
+      "tier_level",
+      "min_consumption",
+      "max_consumption",
+      "unit_price",
+      "effective_date",
+      "is_current"
+    ],
+    "electricity_records": [
+      "record_id",
+      "meter_id",
+      "reading_date",
+      "current_reading",
+      "previous_reading",
+      "consumption",
+      "peak_consumption",
+      "valley_consumption",
+      "record_status",
+      "recorded_by",
+      "created_at"
+    ],
+    "meters": [
+      "meter_id",
+      "user_id",
+      "meter_number",
+      "meter_type",
+      "capacity",
+      "installation_date",
+      "status"
+    ],
+    "payment_records": [
+      "payment_id",
+      "bill_id",
+      "user_id",
+      "payment_amount",
+      "payment_method",
+      "payment_date",
+      "transaction_id",
+      "status"
+    ],
+    "users": [
+      "user_id",
+      "username",
+      "password",
+      "real_name",
+      "phone",
+      "email",
+      "address",
+      "user_type",
+      "created_at"
+    ]
+  },
+  "docs": [
+    "table bills: bill_id, user_id, meter_id, billing_month, total_consumption, total_amount, due_date, payment_status, paid_date, created_at",
+    "table electricity_prices: price_id, user_type, tier_level, min_consumption, max_consumption, unit_price, effective_date, is_current",
+    "table electricity_records: record_id, meter_id, reading_date, current_reading, previous_reading, consumption, peak_consumption, valley_consumption, record_status, recorded_by, created_at",
+    "table meters: meter_id, user_id, meter_number, meter_type, capacity, installation_date, status",
+    "table payment_records: payment_id, bill_id, user_id, payment_amount, payment_method, payment_date, transaction_id, status",
+    "table users: user_id, username, password, real_name, phone, email, address, user_type, created_at"
+  ]
+}

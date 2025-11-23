@@ -42,49 +42,6 @@ class SchemaProvider:
             except Exception:
                 pass
             return {"tables": tables, "docs": docs}
-        if db_url.startswith("mssql://"):
-            parsed = urlparse(db_url)
-            host = parsed.hostname or "localhost"
-            port = parsed.port or 1433
-            user = parsed.username or "sa"
-            password = parsed.password or ""
-            db = (parsed.path or "/").lstrip("/")
-            try:
-                import pyodbc
-            except Exception as e:
-                raise RuntimeError("SQL Server schema introspection requires 'pyodbc' to be installed") from e
-            conn = None
-            drivers = ["ODBC Driver 18 for SQL Server", "ODBC Driver 17 for SQL Server", "SQL Server"]
-            server_specs = [f"{host},{port}", f"{host};PORT={port}", f"{host}"]
-            last_err = None
-            for d in drivers:
-                for server in server_specs:
-                    for extra in ("", ";Encrypt=no;TrustServerCertificate=yes"):
-                        try:
-                            conn = pyodbc.connect(f"DRIVER={{{d}}};SERVER={server};DATABASE={db};UID={user};PWD={password}{extra}")
-                            break
-                        except Exception as e:
-                            last_err = e
-                            conn = None
-                            continue
-                if conn:
-                    break
-            if conn is None:
-                raise RuntimeError("Failed to connect SQL Server with available drivers")
-            cur = conn.cursor()
-            cur.execute("SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS ORDER BY TABLE_NAME, ORDINAL_POSITION")
-            tables = {}
-            docs = []
-            for t, c in cur.fetchall():
-                tables.setdefault(t, []).append(c)
-            for t, cols in tables.items():
-                docs.append(f"table {t}: " + ", ".join(cols))
-            conn.close()
-            try:
-                self._write_db_info(db_url, {"tables": tables, "docs": docs})
-            except Exception:
-                pass
-            return {"tables": tables, "docs": docs}
         raise RuntimeError("Unsupported DB_URL. Please use mysql://...")
     
     def import_json(self, file_path: str, db_url: str, dialect: str) -> dict:
@@ -96,26 +53,12 @@ class SchemaProvider:
         os.makedirs(info_dir, exist_ok=True)
         out_path = os.path.join(info_dir, f"{db}.json")
         with open(out_path, "w", encoding="utf-8") as f:
-            json.dump({"db": db, "host": parsed.hostname, "port": parsed.port, "tables": schema.get("tables", {}), "docs": schema.get("docs", [])}, f, ensure_ascii=False)
+            json.dump({"db": db, "host": parsed.hostname, "port": parsed.port, "tables": schema.get("tables", {}), "docs": schema.get("docs", [])}, f, ensure_ascii=False, indent=2)
+            f.write("\n")
     def _ensure_mysql_table(self, cur, table_name: str, columns: list):
-        defs = []
-        for c in columns:
-            name = c["name"]
-            typ = c.get("type", "string").lower()
-            if typ in ("integer", "int"):
-                defs.append(f"{name} INT")
-            elif typ in ("float", "double", "real"):
-                defs.append(f"{name} DOUBLE")
-            elif typ in ("date", "datetime"):
-                defs.append(f"{name} VARCHAR(32)")
-            else:
-                defs.append(f"{name} VARCHAR(255)")
-        cur.execute(f"CREATE TABLE IF NOT EXISTS {table_name} (" + ", ".join(defs) + ")")
+        pass
     def _insert_mysql(self, cur, table_name: str, columns: list, row: dict):
-        names = [c["name"] for c in columns]
-        placeholders = ", ".join(["%s"] * len(names))
-        vals = [row.get(n) for n in names]
-        cur.execute(f"INSERT INTO {table_name} (" + ", ".join(names) + ") VALUES (" + placeholders + ")", vals)
+        pass
     def _validate_and_normalize_row(self, row: dict, columns: list):
         out = {}
         for c in columns:

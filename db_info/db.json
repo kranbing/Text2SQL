@@ -1,1 +1,18 @@
-{"db": "db", "host": "localhost", "port": 3306, "tables": {"t1": ["c1", "c2"], "t2": ["a"]}, "docs": ["table t1: c1, c2", "table t2: a"]}
+{
+  "db": "db",
+  "host": "localhost",
+  "port": 3306,
+  "tables": {
+    "t1": [
+      "c1",
+      "c2"
+    ],
+    "t2": [
+      "a"
+    ]
+  },
+  "docs": [
+    "table t1: c1, c2",
+    "table t2: a"
+  ]
+}

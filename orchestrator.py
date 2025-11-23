@@ -29,11 +29,7 @@ class Orchestrator:
 
     def run(self, question: str, limit: int, explain: bool, dry_run: bool, as_json: bool = False, as_csv: bool = False, show_schema: bool = False):
         db_url = self.db_url
-        # 自动根据 URL scheme 选择方言
-        if db_url.startswith("mssql://"):
-            dialect = "mssql"
-        else:
-            dialect = "mysql"
+        dialect = "mysql"
         if not db_url:
             raise RuntimeError("Missing DB_URL. Please set MySQL connection string, e.g., mysql://user:pass@host:3306/db")
         schema = self.schema.load(db_url, dialect)
@@ -44,20 +40,8 @@ class Orchestrator:
         docs = schema.get("docs", [])
         kb_dir = os.getenv("KB_DIR", None)
         if kb_dir and os.path.isdir(kb_dir):
-            kb_glob = os.getenv("KB_GLOB", "*.txt")
-            kb_docs = []
-            try:
-                import glob
-                for p in glob.glob(os.path.join(kb_dir, kb_glob)):
-                    try:
-                        with open(p, "r", encoding="utf-8") as f:
-                            txt = f.read()
-                        if txt.strip():
-                            kb_docs.append(txt)
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+            kb_glob = os.getenv("KB_GLOB", None)
+            kb_docs = self.rag_index.load_docs_from_dir(kb_dir, kb_glob)
             docs = docs + kb_docs
         self.rag_index.build(docs)
         self.rag.set_index(self.rag_index)
@@ -86,6 +70,11 @@ class Orchestrator:
         if str(sql).strip() == "7355608":
             print("请检查要查询的字段是否在数据库中")
             return
+        try:
+            sql = self.guard.check_semantics(question, schema, sql)
+        except ValueError:
+            print("请检查要查询的字段是否在数据库中")
+            return
         
         sql = self.guard.validate(sql, dialect)
         plan_rows, plan_headers = None, None
@@ -102,15 +91,90 @@ class Orchestrator:
         rows, headers = self.db.query(db_url, sql, timeout=30, row_limit=limit)
         if as_json:
             p = self.out.save_json(question, sql, rows, headers)
-            print(p)
+            print(f"文件保存到{p}")
             return
         
         if as_csv:
             p = self.out.save_csv(question, sql, rows, headers)
-            print(p)
+            print(f"文件保存到{p}")
             return
         
         print(sql)
         print(self.out.to_table(rows, headers))
         if plan_rows and plan_headers:
             print(self.out.to_table(plan_rows, plan_headers))
+
+    def show_rag(self):
+        kb_dir = os.getenv("KB_DIR", None)
+        if not kb_dir or not os.path.isdir(kb_dir):
+            print("未配置 KB_DIR 或目录不存在")
+            return
+        kb_glob = os.getenv("KB_GLOB", None)
+        kb_docs = self.rag_index.load_docs_from_dir(kb_dir, kb_glob)
+        print(f"已导入知识库文档数：{len(kb_docs)}")
+        for i, d in enumerate(kb_docs, 1):
+            preview = d.strip().replace("\r", " ").replace("\n", " ")
+            if len(preview) > 100:
+                preview = preview[:100] + "..."
+            print(f"[{i}] {preview}")
+
+    def run_batch_file(self, filepath: str, limit: int, as_json: bool = False, as_csv: bool = False):
+        db_url = self.db_url
+        dialect = "mysql"
+        if not db_url:
+            raise RuntimeError("Missing DB_URL. Please set MySQL connection string, e.g., mysql://user:pass@host:3306/db")
+        schema = self.schema.load(db_url, dialect)
+        docs = schema.get("docs", [])
+        kb_dir = os.getenv("KB_DIR", None)
+        if kb_dir and os.path.isdir(kb_dir):
+            kb_glob = os.getenv("KB_GLOB", None)
+            kb_docs = self.rag_index.load_docs_from_dir(kb_dir, kb_glob)
+            docs = docs + kb_docs
+        self.rag_index.build(docs)
+        self.rag.set_index(self.rag_index)
+        import json
+        with open(filepath, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, list):
+            print("文件格式错误：需要为json数组 [ {question: ...}, ... ]")
+            return
+        print(f"批量查询 {len(data)} 条")
+        batch_items = []
+        for i, item in enumerate(data, 1):
+            try:
+                if not isinstance(item, dict) or not item.get("question"):
+                    print(f"[{i}] 跳过：缺少 question 字段")
+                    batch_items.append({"question": item.get("question", ""), "error": "缺少question字段", "suggest": []})
+                    continue
+                q2 = str(item["question"]).strip()
+                ctx_docs = self.rag.query(q2, top_k=3)
+                if self.llm is None:
+                    self.llm = LLMClient()
+                sql = self.llm.generate_sql(q2, schema, dialect, limit, context_docs=ctx_docs)
+                if str(sql).strip() == "7355608":
+                    need = self.guard.suggest_missing_terms(q2, schema)
+                    print(f"[{i}] 请检查要查询的字段是否在数据库中；可能需要提供：{', '.join(need) if need else '无'}")
+                    batch_items.append({"question": q2, "sql": None, "rows": [], "headers": [], "error": "字段不在数据库中", "suggest": need})
+                    continue
+                try:
+                    sql = self.guard.check_semantics(q2, schema, sql)
+                except ValueError:
+                    need = self.guard.suggest_missing_terms(q2, schema)
+                    print(f"[{i}] 请检查要查询的字段是否在数据库中；可能需要提供：{', '.join(need) if need else '无'}")
+                    batch_items.append({"question": q2, "sql": None, "rows": [], "headers": [], "error": "语义不匹配", "suggest": need})
+                    continue
+                sql = self.guard.validate(sql, dialect)
+                rows, headers = self.db.query(db_url, sql, timeout=30, row_limit=limit)
+                print(f"[{i}] {sql}")
+                print(self.out.to_table(rows, headers))
+                batch_items.append({"question": q2, "sql": sql, "rows": rows, "headers": headers, "error": None, "suggest": []})
+            except Exception as e:
+                need = self.guard.suggest_missing_terms(item.get("question", ""), schema)
+                print(f"[{i}] 查询失败: {e}；可能需要提供：{', '.join(need) if need else '无'}")
+                batch_items.append({"question": item.get("question", ""), "sql": None, "rows": [], "headers": [], "error": str(e), "suggest": need})
+        if as_json:
+            p = self.out.save_batch_json(batch_items)
+            print(f"文件保存到{p}")
+        if as_csv:
+            p = self.out.save_batch_csv(batch_items)
+            print(f"文件保存到{p}")

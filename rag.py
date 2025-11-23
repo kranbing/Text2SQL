@@ -18,6 +18,75 @@ class RAGIndex:
         except Exception:
             self._emb_cls = None
             self._vs_cls = None
+    def _extract_text_from_file(self, path: str) -> str | None:
+        try:
+            ext = (path.split('.')[-1] or '').lower()
+            if ext in ("txt", "md"):
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+            if ext == "csv":
+                import csv
+                out = []
+                with open(path, "r", encoding="utf-8", newline="") as f:
+                    r = csv.reader(f)
+                    for row in r:
+                        out.append("\t".join(str(x) for x in row))
+                return "\n".join(out)
+            if ext in ("xlsx",):
+                try:
+                    import openpyxl
+                    wb = openpyxl.load_workbook(path, read_only=True)
+                    out = []
+                    for ws in wb.worksheets:
+                        for row in ws.iter_rows(values_only=True):
+                            out.append("\t".join(str(x) if x is not None else "" for x in row))
+                    return "\n".join(out)
+                except Exception:
+                    return None
+            if ext in ("xls",):
+                try:
+                    import xlrd
+                    book = xlrd.open_workbook(path)
+                    out = []
+                    for si in range(book.nsheets):
+                        sh = book.sheet_by_index(si)
+                        for ri in range(sh.nrows):
+                            row = sh.row_values(ri)
+                            out.append("\t".join(str(x) for x in row))
+                    return "\n".join(out)
+                except Exception:
+                    return None
+            if ext in ("docx",):
+                try:
+                    from docx import Document
+                    doc = Document(path)
+                    return "\n".join(p.text for p in doc.paragraphs)
+                except Exception:
+                    return None
+
+        except Exception:
+            return None
+        return None
+    def load_docs_from_dir(self, dir_path: str, glob_patterns: str | None = None) -> list[str]:
+        import os
+        import glob
+        if not dir_path or not os.path.isdir(dir_path):
+            return []
+        pats = []
+        if glob_patterns:
+            for p in str(glob_patterns).split(","):
+                p = p.strip()
+                if p:
+                    pats.append(p)
+        if not pats:
+            pats = ["*.txt", "*.md", "*.csv", "*.xlsx", "*.xls", "*.docx"]
+        texts = []
+        for gp in pats:
+            for p in glob.glob(os.path.join(dir_path, gp)):
+                t = self._extract_text_from_file(p)
+                if t and t.strip():
+                    texts.append(t)
+        return texts
     def build(self, docs: list[str]):
         self.docs = docs or []
         if self._emb_cls and self._vs_cls and self.docs:

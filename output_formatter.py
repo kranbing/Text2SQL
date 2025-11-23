@@ -46,7 +46,7 @@ class OutputFormatter:
                 except Exception:
                     item[h] = r[i]
             out.append(item)
-        return json.dumps(out, ensure_ascii=False)
+        return json.dumps(out, ensure_ascii=False, indent=2)
     def to_csv(self, rows, headers) -> str:
         buf = io.StringIO()
         w = csv.writer(buf)
@@ -76,7 +76,8 @@ class OutputFormatter:
             result_rows.append(item)
         payload = {"用户问题": question, "SQL查询语句": sql, "查询结果": result_rows}
         with open(path, "w", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=False))
+            f.write(json.dumps(payload, ensure_ascii=False, indent=2))
+            f.write("\n")
         return path
     def save_csv(self, question: str, sql: str, rows, headers, filename: str | None = None) -> str:
         base = os.path.join(os.path.dirname(__file__), "results")
@@ -96,4 +97,53 @@ class OutputFormatter:
             w = csv.writer(f)
             w.writerow(["用户问题", "SQL查询语句", "查询结果"])
             w.writerow([question, sql, json.dumps(result_rows, ensure_ascii=False)])
+        return path
+    def save_batch_json(self, items: list, filename: str | None = None) -> str:
+        base = os.path.join(os.path.dirname(__file__), "results")
+        os.makedirs(base, exist_ok=True)
+        name = filename or f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+        path = os.path.join(base, name)
+        out_items = []
+        for it in items:
+            q = it.get("question", "")
+            sql = it.get("sql")
+            rows = it.get("rows") or []
+            headers = it.get("headers") or []
+            result_rows = []
+            for r in rows:
+                item = {}
+                for i, h in enumerate(headers):
+                    try:
+                        item[h] = r[h]
+                    except Exception:
+                        item[h] = r[i]
+                result_rows.append(item)
+            out_items.append({"用户问题": q, "SQL查询语句": sql, "查询结果": result_rows})
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"批次结果": out_items}, ensure_ascii=False, indent=2))
+            f.write("\n")
+        return path
+    def save_batch_csv(self, items: list, filename: str | None = None) -> str:
+        base = os.path.join(os.path.dirname(__file__), "results")
+        os.makedirs(base, exist_ok=True)
+        name = filename or f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        path = os.path.join(base, name)
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            w = csv.writer(f)
+            w.writerow(["用户问题", "SQL查询语句", "查询结果"])
+            for it in items:
+                q = it.get("question", "")
+                sql = it.get("sql")
+                rows = it.get("rows") or []
+                headers = it.get("headers") or []
+                result_rows = []
+                for r in rows:
+                    item = {}
+                    for i, h in enumerate(headers):
+                        try:
+                            item[h] = r[h]
+                        except Exception:
+                            item[h] = r[i]
+                    result_rows.append(item)
+                w.writerow([q, sql or "", json.dumps(result_rows, ensure_ascii=False)])
         return path

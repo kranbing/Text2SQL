@@ -57,8 +57,8 @@ def main():
     try:
         db_url = orchestrator.db_url
         if not db_url:
-            raise RuntimeError("Missing DB_URL. Please set MySQL/SQL Server connection string")
-        dialect = "mssql" if db_url.startswith("mssql://") else "mysql"
+            raise RuntimeError("Missing DB_URL. Please set MySQL connection string")
+        dialect = "mysql"
         orchestrator.schema.load(db_url, dialect)
         stop_evt.set()
         t.join()
@@ -82,16 +82,24 @@ def main():
             break
         if not q:
             continue
-
-        if q.lower() in ("exit", "quit"): 
+            
+        if q.lower() in ("exit", "quit" , "-q"): 
             break
 
         if q.lower() in ("-h", "-help", "--h", "--help"):
-            print("命令：\n  输入问题执行查询\n  -h 显示帮助\n  -e 切换是否显示执行计划\n  -d 切换干运行（仅显示SQL不执行）\n  -j 切换JSON输出\n  -c 切换CSV输出\n  -l N 设置LIMIT 上限\n  -imptjson 路径（暂不可用）\n  -s 切换显示数据库表结构\n  exit 退出")
+            print("命令：\n  输入问题执行查询\n  -h 显示帮助\n  -e 切换是否显示执行计划\n  -d 切换干运行（仅显示SQL不执行）\n  -j 切换JSON输出\n  -c 切换CSV输出\n  -l N 设置LIMIT 上限\n  -import 路径 批量查询文件\n  -s 切换显示数据库表结构\n  -showrag 展示已导入的知识库（来自 KB_DIR/KB_GLOB）\n  exit 退出")
             continue
 
-        if q.lower().startswith("-imptjson"):
-            print("导入功能暂时不可用（占位）")
+        if q.lower().startswith("-import"):
+            parts = q.split(maxsplit=1)
+            if len(parts) != 2 or not parts[1].strip():
+                print("用法：-import <filepath>")
+                continue
+            path = parts[1].strip()
+            try:
+                orchestrator.run_batch_file(path, limit, as_json=as_json, as_csv=as_csv)
+            except Exception as e:
+                print(f"批量查询失败: {e}")
             continue
 
         if q.lower().startswith("-l"):
@@ -101,6 +109,13 @@ def main():
                 print(f"LIMIT={limit}")
             else:
                 print("用法：-l 100")
+            continue
+
+        if q.lower() == "-showrag":
+            try:
+                orchestrator.show_rag()
+            except Exception as e:
+                print(f"显示知识库失败: {e}")
             continue
 
         if q.lower() == "-e":
@@ -130,6 +145,10 @@ def main():
         if q.lower() == "-s":
             show_schema = not show_schema
             print(f"SCHEMA={'ON' if show_schema else 'OFF'}")
+            continue
+
+        if q.startswith("-"):
+            print("没有匹配的命令，命令列表请看'-h'")
             continue
 
         try:
