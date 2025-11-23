@@ -37,7 +37,6 @@ def main():
     parser.add_argument("--explain", dest="explain", action="store_true")
     parser.add_argument("--dry-run", dest="dry_run", action="store_true")
     parser.add_argument("--json", dest="json", action="store_true")
-    parser.add_argument("--csv", dest="csv", action="store_true")
     parser.add_argument("--show-schema", dest="show_schema", action="store_true")
     args = parser.parse_args()
     orchestrator = Orchestrator()
@@ -73,7 +72,6 @@ def main():
     explain = args.explain
     dry_run = args.dry_run
     as_json = args.json
-    as_csv = args.csv
     show_schema = args.show_schema
     while True:
         try:
@@ -87,7 +85,7 @@ def main():
             break
 
         if q.lower() in ("-h", "-help", "--h", "--help"):
-            print("命令：\n  输入问题执行查询\n  -h 显示帮助\n  -e 切换是否显示执行计划\n  -d 切换干运行（仅显示SQL不执行）\n  -j 切换JSON输出\n  -c 切换CSV输出\n  -l N 设置LIMIT 上限\n  -import 路径 批量查询文件\n  -s 切换显示数据库表结构\n  -showrag 展示已导入的知识库（来自 KB_DIR/KB_GLOB）\n  exit 退出")
+            print("命令：\n  输入问题执行查询\n  -h 显示帮助\n  -e 切换是否显示执行计划\n  -d 切换干运行（仅显示SQL不执行）\n  -j 切换JSON输出\n  -l N 设置LIMIT 上限\n  -import 路径 批量查询文件\n  -s 切换显示数据库表结构\n  -showrag 展示已导入的知识库（来自 KB_DIR/KB_GLOB）\n  exit 退出")
             continue
 
         if q.lower().startswith("-import"):
@@ -97,7 +95,7 @@ def main():
                 continue
             path = parts[1].strip()
             try:
-                orchestrator.run_batch_file(path, limit, as_json=as_json, as_csv=as_csv)
+                orchestrator.run_batch_file(path, limit, as_json=as_json)
             except Exception as e:
                 print(f"批量查询失败: {e}")
             continue
@@ -130,16 +128,7 @@ def main():
 
         if q.lower() == "-j":
             as_json = not as_json
-            if as_json:
-                as_csv = False
             print(f"JSON={'ON' if as_json else 'OFF'}")
-            continue
-
-        if q.lower() == "-c":
-            as_csv = not as_csv
-            if as_csv:
-                as_json = False
-            print(f"CSV={'ON' if as_csv else 'OFF'}")
             continue
 
         if q.lower() == "-s":
@@ -158,7 +147,6 @@ def main():
                 explain=explain,
                 dry_run=dry_run,
                 as_json=as_json,
-                as_csv=as_csv,
                 show_schema=show_schema,
             )
         except ValueError as e:

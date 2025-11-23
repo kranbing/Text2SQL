@@ -1,0 +1,149 @@
+-- 创建数据库
+CREATE DATABASE IF NOT EXISTS elec_db;
+USE elec_db;
+
+-- 1. 用户表
+CREATE TABLE users (
+    user_id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(100) NOT NULL,
+    real_name VARCHAR(50) NOT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(100),
+    address TEXT,
+    user_type ENUM('resident', 'business', 'industrial') DEFAULT 'resident',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. 电表表
+CREATE TABLE meters (
+    meter_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    meter_number VARCHAR(50) UNIQUE NOT NULL,
+    meter_type ENUM('single_phase', 'three_phase') DEFAULT 'single_phase',
+    capacity DECIMAL(10,2), -- 容量(kW)
+    installation_date DATE,
+    status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- 3. 用电记录表
+CREATE TABLE electricity_records (
+    record_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    meter_id INT NOT NULL,
+    reading_date DATE NOT NULL,
+    current_reading DECIMAL(10,2) NOT NULL,
+    previous_reading DECIMAL(10,2) NOT NULL,
+    consumption DECIMAL(10,2) NOT NULL, -- 本次用电量(kWh)
+    peak_consumption DECIMAL(8,2), -- 峰时用电
+    valley_consumption DECIMAL(8,2), -- 谷时用电
+    record_status ENUM('normal', 'abnormal', 'estimated') DEFAULT 'normal',
+    recorded_by VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (meter_id) REFERENCES meters(meter_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_meter_date (meter_id, reading_date)
+);
+
+-- 4. 电价表
+CREATE TABLE electricity_prices (
+    price_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_type ENUM('resident', 'business', 'industrial') NOT NULL,
+    tier_level INT NOT NULL, -- 阶梯等级
+    min_consumption DECIMAL(10,2) NOT NULL, -- 最小用电量
+    max_consumption DECIMAL(10,2), -- 最大用电量 (NULL表示无上限)
+    unit_price DECIMAL(8,4) NOT NULL, -- 单价(元/kWh)
+    effective_date DATE NOT NULL,
+    is_current BOOLEAN DEFAULT TRUE,
+    UNIQUE KEY unique_user_tier (user_type, tier_level, effective_date)
+);
+
+-- 5. 账单表
+CREATE TABLE bills (
+    bill_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    meter_id INT NOT NULL,
+    billing_month DATE NOT NULL, -- 账单月份
+    total_consumption DECIMAL(10,2) NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    due_date DATE NOT NULL,
+    payment_status ENUM('unpaid', 'paid', 'overdue') DEFAULT 'unpaid',
+    paid_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id),
+    FOREIGN KEY (meter_id) REFERENCES meters(meter_id),
+    UNIQUE KEY unique_user_month (user_id, billing_month)
+);
+
+-- 6. 缴费记录表
+CREATE TABLE payment_records (
+    payment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    bill_id BIGINT NOT NULL,
+    user_id INT NOT NULL,
+    payment_amount DECIMAL(10,2) NOT NULL,
+    payment_method ENUM('alipay', 'wechat', 'bank', 'cash') NOT NULL,
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    transaction_id VARCHAR(100), -- 第三方交易ID
+    status ENUM('success', 'failed', 'pending') DEFAULT 'success',
+    FOREIGN KEY (bill_id) REFERENCES bills(bill_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- 创建索引以提高查询性能
+CREATE INDEX idx_electricity_records_date ON electricity_records(reading_date);
+CREATE INDEX idx_electricity_records_meter ON electricity_records(meter_id);
+CREATE INDEX idx_bills_user ON bills(user_id);
+CREATE INDEX idx_bills_status ON bills(payment_status);
+CREATE INDEX idx_bills_month ON bills(billing_month);
+CREATE INDEX idx_payment_bill ON payment_records(bill_id);
+
+
+
+-- 插入用户数据
+INSERT INTO users (username, password, real_name, phone, email, address, user_type) VALUES
+('zhangsan', 'password123', '张三', '13800138001', 'zhangsan@email.com', '北京市朝阳区建国路100号', 'resident'),
+('lisi', 'password123', '李四', '13800138002', 'lisi@email.com', '北京市海淀区中关村大街1号', 'resident'),
+('wangwu', 'password123', '王五', '13800138003', 'wangwu@email.com', '北京市东城区王府井大街200号', 'business'),
+('abc_company', 'password123', 'ABC科技有限公司', '13800138004', 'contact@abc.com', '北京市经济技术开发区荣华中路8号', 'industrial');
+
+-- 插入电表数据
+INSERT INTO meters (user_id, meter_number, meter_type, capacity, installation_date, status) VALUES
+(1, 'METER001', 'single_phase', 8.00, '2023-01-15', 'active'),
+(2, 'METER002', 'single_phase', 8.00, '2023-02-20', 'active'),
+(3, 'METER003', 'three_phase', 50.00, '2023-03-10', 'active'),
+(4, 'METER004', 'three_phase', 200.00, '2023-01-05', 'active');
+
+-- 插入电价数据
+INSERT INTO electricity_prices (user_type, tier_level, min_consumption, max_consumption, unit_price, effective_date) VALUES
+('resident', 1, 0, 240, 0.4883, '2024-01-01'),
+('resident', 2, 241, 400, 0.5383, '2024-01-01'),
+('resident', 3, 401, NULL, 0.7883, '2024-01-01'),
+('business', 1, 0, NULL, 0.7542, '2024-01-01'),
+('industrial', 1, 0, NULL, 0.6321, '2024-01-01');
+
+-- 插入用电记录
+INSERT INTO electricity_records (meter_id, reading_date, current_reading, previous_reading, consumption, peak_consumption, valley_consumption, record_status) VALUES
+(1, '2024-01-31', 1250.50, 1200.00, 50.50, 35.20, 15.30, 'normal'),
+(1, '2024-02-29', 1320.75, 1250.50, 70.25, 45.10, 25.15, 'normal'),
+(1, '2024-03-31', 1405.20, 1320.75, 84.45, 52.80, 31.65, 'normal'),
+(2, '2024-01-31', 890.25, 850.00, 40.25, 28.15, 12.10, 'normal'),
+(2, '2024-02-29', 945.80, 890.25, 55.55, 36.40, 19.15, 'normal'),
+(3, '2024-01-31', 12500.00, 12000.00, 500.00, 320.00, 180.00, 'normal'),
+(4, '2024-01-31', 45800.00, 45000.00, 800.00, 480.00, 320.00, 'normal');
+
+-- 插入账单数据
+INSERT INTO bills (user_id, meter_id, billing_month, total_consumption, total_amount, due_date, payment_status) VALUES
+(1, 1, '2024-01-01', 50.50, 24.67, '2024-02-15', 'paid'),
+(1, 1, '2024-02-01', 70.25, 34.31, '2024-03-15', 'paid'),
+(1, 1, '2024-03-01', 84.45, 45.52, '2024-04-15', 'unpaid'),
+(2, 2, '2024-01-01', 40.25, 19.66, '2024-02-15', 'paid'),
+(2, 2, '2024-02-01', 55.55, 27.13, '2024-03-15', 'unpaid'),
+(3, 3, '2024-01-01', 500.00, 377.10, '2024-02-15', 'paid'),
+(4, 4, '2024-01-01', 800.00, 505.68, '2024-02-15', 'paid');
+
+-- 插入缴费记录
+INSERT INTO payment_records (bill_id, user_id, payment_amount, payment_method, payment_date, transaction_id) VALUES
+(1, 1, 24.67, 'alipay', '2024-02-10 14:30:00', 'ALI202402101430001'),
+(2, 1, 34.31, 'wechat', '2024-03-12 09:15:00', 'WX202403120915002'),
+(4, 2, 19.66, 'bank', '2024-02-08 16:45:00', 'BANK202402081645003'),
+(6, 3, 377.10, 'bank', '2024-02-14 11:20:00', 'BANK202402141120004'),
+(7, 4, 505.68, 'alipay', '2024-02-12 13:50:00', 'ALI202402121350005');

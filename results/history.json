@@ -1,0 +1,8 @@
+[
+  {
+    "id": "bab33b14bd2146efb9c484edea00c9e4",
+    "query_text": "有多少人来自北京",
+    "sql_generated": "SELECT COUNT(*) FROM users WHERE address LIKE '%北京%' LIMIT 100",
+    "created_at": "2025-11-23T14:36:43.620860Z"
+  }
+]

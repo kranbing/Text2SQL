@@ -1,0 +1,16 @@
+{
+  "task_de2b2988": {
+    "task_id": "task_de2b2988",
+    "task_type": "update_kb",
+    "status": "completed",
+    "progress": 100,
+    "result_url": null
+  },
+  "task_68403220": {
+    "task_id": "task_68403220",
+    "task_type": "batch_query",
+    "status": "completed",
+    "progress": 100,
+    "result_url": null
+  }
+}
