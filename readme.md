@@ -74,5 +74,3 @@ KB_GLOB=*.txt,*.md,*.csv,*.xlsx,*.xls,*.docx
 相关文档 | Docs
 - 前端 API 文档：`front_end/API.md`
 - 版本变更：`CHANGELOG.md`
-版本变更 | Changelog
-- 详见 `CHANGELOG.md`
