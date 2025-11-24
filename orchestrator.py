@@ -8,12 +8,12 @@ import os
 import sys
 import time
 import threading
-from .llm_client import LLMClient
-from .schema_provider import SchemaProvider
-from .sql_guard import SqlGuard
-from .db_executor import DbExecutor
-from .output_formatter import OutputFormatter
-from .rag import RAGIndex, RAGRetriever
+from llm_client import LLMClient
+from schema_provider import SchemaProvider
+from sql_guard import SqlGuard
+from db_executor import DbExecutor
+from output_formatter import OutputFormatter
+from rag import RAGIndex, RAGRetriever
 
 class Orchestrator:
     def __init__(self):
